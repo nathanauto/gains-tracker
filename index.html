@@ -230,6 +230,39 @@
       <div><label>Fat (g)</label><input type="number" id="goal-fat" placeholder="e.g. 80"></div>
       <button class="btn" onclick="saveGoals()">Save targets</button>
     </div>
+    <h3>My stats</h3>
+    <div class="card form-gap" style="margin-bottom:16px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><label>Weight (kg)</label><input type="number" id="stat-weight" step="0.1" placeholder="83" inputmode="decimal"></div>
+        <div><label>Height (cm)</label><input type="number" id="stat-height" placeholder="172" inputmode="numeric"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><label>Age</label><input type="number" id="stat-age" placeholder="30" inputmode="numeric"></div>
+        <div>
+          <label>Biological sex</label>
+          <select id="stat-sex">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>Training days per week</label>
+        <select id="stat-activity">
+          <option value="1.2">Sedentary (desk job, no exercise)</option>
+          <option value="1.375">Light (1–3 days/week)</option>
+          <option value="1.55">Moderate (3–5 days/week)</option>
+          <option value="1.725" selected>Active (6–7 days/week)</option>
+          <option value="1.9">Very active (2× day training)</option>
+        </select>
+      </div>
+      <div id="stat-tdee-display" style="display:none;background:var(--surface2);border-radius:10px;padding:12px">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Estimated maintenance calories (TDEE)</div>
+        <div style="font-size:24px;font-weight:700;color:var(--accent)" id="stat-tdee-val"></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Based on Mifflin-St Jeor formula</div>
+      </div>
+      <button class="btn" onclick="saveStats()">Save &amp; calculate TDEE</button>
+    </div>
     <h3>Data</h3>
     <div class="card form-gap">
       <button class="btn btn-secondary" onclick="exportData()">Export all data (JSON)</button>
@@ -845,6 +878,44 @@ function loadSettings() {
   document.getElementById('goal-protein').value = goals.protein;
   document.getElementById('goal-carbs').value = goals.carbs;
   document.getElementById('goal-fat').value = goals.fat;
+  const stats = DB.get('body-stats', {});
+  if (stats.weight) document.getElementById('stat-weight').value = stats.weight;
+  if (stats.height) document.getElementById('stat-height').value = stats.height;
+  if (stats.age) document.getElementById('stat-age').value = stats.age;
+  if (stats.sex) document.getElementById('stat-sex').value = stats.sex;
+  if (stats.activity) document.getElementById('stat-activity').value = stats.activity;
+  if (stats.tdee) showTDEE(stats.tdee);
+}
+
+function calcTDEE(weight, height, age, sex, activity) {
+  const bmr = sex === 'female'
+    ? 10 * weight + 6.25 * height - 5 * age - 161
+    : 10 * weight + 6.25 * height - 5 * age + 5;
+  return Math.round(bmr * activity);
+}
+
+function showTDEE(tdee) {
+  document.getElementById('stat-tdee-display').style.display = 'block';
+  document.getElementById('stat-tdee-val').textContent = tdee + ' kcal / day';
+}
+
+function saveStats() {
+  const weight = parseFloat(document.getElementById('stat-weight').value);
+  const height = parseInt(document.getElementById('stat-height').value);
+  const age = parseInt(document.getElementById('stat-age').value);
+  const sex = document.getElementById('stat-sex').value;
+  const activity = parseFloat(document.getElementById('stat-activity').value);
+  const stats = { weight: weight||null, height: height||null, age: age||null, sex, activity };
+  DB.set('body-stats', stats);
+  if (weight && height && age) {
+    const tdee = calcTDEE(weight, height, age, sex, activity);
+    stats.tdee = tdee;
+    DB.set('body-stats', stats);
+    showTDEE(tdee);
+    toast('Stats saved — TDEE: ' + tdee + ' kcal');
+  } else {
+    toast('Stats saved');
+  }
 }
 
 function saveGoals() {
