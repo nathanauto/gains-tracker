@@ -912,7 +912,18 @@ function saveStats() {
     stats.tdee = tdee;
     DB.set('body-stats', stats);
     showTDEE(tdee);
-    toast('Stats saved — TDEE: ' + tdee + ' kcal');
+    const protein = Math.round(weight * 2.2);
+    const fat = Math.round(weight * 0.9);
+    const cals = tdee;
+    const carbs = Math.round((cals - protein * 4 - fat * 9) / 4);
+    const goals = { cals, protein, carbs: Math.max(carbs, 50), fat };
+    DB.set('goals', goals);
+    document.getElementById('goal-cals').value = goals.cals;
+    document.getElementById('goal-protein').value = goals.protein;
+    document.getElementById('goal-carbs').value = goals.carbs;
+    document.getElementById('goal-fat').value = goals.fat;
+    renderMacros();
+    toast('Stats saved — targets updated to match');
   } else {
     toast('Stats saved');
   }
