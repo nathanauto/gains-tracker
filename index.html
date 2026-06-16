@@ -900,33 +900,30 @@ function showTDEE(tdee) {
 }
 
 function saveStats() {
-  const weight = parseFloat(document.getElementById('stat-weight').value);
-  const height = parseInt(document.getElementById('stat-height').value);
-  const age = parseInt(document.getElementById('stat-age').value);
+  const prev = DB.get('body-stats', {});
+  const weight = parseFloat(document.getElementById('stat-weight').value) || prev.weight;
+  const height = parseInt(document.getElementById('stat-height').value) || prev.height || 175;
+  const age = parseInt(document.getElementById('stat-age').value) || prev.age || 30;
   const sex = document.getElementById('stat-sex').value;
   const activity = parseFloat(document.getElementById('stat-activity').value);
-  const stats = { weight: weight||null, height: height||null, age: age||null, sex, activity };
+  if (!weight) { toast('Enter your weight to calculate targets'); return; }
+  const stats = { weight, height, age, sex, activity };
+  const tdee = calcTDEE(weight, height, age, sex, activity);
+  stats.tdee = tdee;
   DB.set('body-stats', stats);
-  if (weight && height && age) {
-    const tdee = calcTDEE(weight, height, age, sex, activity);
-    stats.tdee = tdee;
-    DB.set('body-stats', stats);
-    showTDEE(tdee);
-    const protein = Math.round(weight * 2.2);
-    const fat = Math.round(weight * 0.9);
-    const cals = tdee;
-    const carbs = Math.round((cals - protein * 4 - fat * 9) / 4);
-    const goals = { cals, protein, carbs: Math.max(carbs, 50), fat };
-    DB.set('goals', goals);
-    document.getElementById('goal-cals').value = goals.cals;
-    document.getElementById('goal-protein').value = goals.protein;
-    document.getElementById('goal-carbs').value = goals.carbs;
-    document.getElementById('goal-fat').value = goals.fat;
-    renderMacros();
-    toast('Stats saved — targets updated to match');
-  } else {
-    toast('Stats saved');
-  }
+  showTDEE(tdee);
+  const protein = Math.round(weight * 2.2);
+  const fat = Math.round(weight * 0.9);
+  const cals = tdee;
+  const carbs = Math.round((cals - protein * 4 - fat * 9) / 4);
+  const goals = { cals, protein, carbs: Math.max(carbs, 50), fat };
+  DB.set('goals', goals);
+  document.getElementById('goal-cals').value = goals.cals;
+  document.getElementById('goal-protein').value = goals.protein;
+  document.getElementById('goal-carbs').value = goals.carbs;
+  document.getElementById('goal-fat').value = goals.fat;
+  renderMacros();
+  toast('Saved — targets updated (' + tdee + ' kcal)');
 }
 
 function saveGoals() {
